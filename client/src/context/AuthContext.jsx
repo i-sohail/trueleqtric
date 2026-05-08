@@ -15,9 +15,11 @@ export function AuthProvider({ children }) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
       api.get('/access/me')
         .then(res => setUser(res.data.user))
-        .catch(() => {
+        .catch((err) => {
           localStorage.removeItem('tl_token')
           delete api.defaults.headers.common['Authorization']
+          const msg = err.response?.data?.error;
+          if (typeof msg === 'string') toast.error(msg);
         })
         .finally(() => setLoading(false))
     } else {

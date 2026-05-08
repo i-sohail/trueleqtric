@@ -8,7 +8,8 @@ const errorHandler = (err, req, res, next) => {
   // Prisma duplicate key
   if (err.code === 'P2002') {
     statusCode = 409;
-    const field = err.meta?.target || 'field';
+    const target = err.meta?.target;
+    const field = Array.isArray(target) ? target.join(', ') : (target || 'field');
     message = `Duplicate value for ${field}`;
   }
 

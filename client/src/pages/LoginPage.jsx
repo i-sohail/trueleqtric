@@ -20,7 +20,8 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${user.name}!`)
       navigate('/')
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Login failed. Check credentials.')
+      const msg = err.response?.data?.error;
+      toast.error(typeof msg === 'string' ? msg : 'Login failed. Check credentials.');
     } finally {
       setLoading(false)
     }
