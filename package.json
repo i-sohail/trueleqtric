@@ -6,8 +6,9 @@
     "client"
   ],
   "scripts": {
-    "build": "cd client && npm install && npm run build",
-    "vercel-build": "npx prisma generate --schema=server/prisma/schema.prisma && npm run build"
+    "build:client": "cd client && npm run build",
+    "build:server": "npx prisma generate --schema=server/prisma/schema.prisma",
+    "vercel-build": "npm run build:server && npm run build:client"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -29,6 +30,27 @@
     "puppeteer": "^21.6.1",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
-    "prisma": "^6.19.3"
+    "prisma": "^6.19.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.1",
+    "axios": "^1.6.2",
+    "recharts": "^2.10.3",
+    "react-hot-toast": "^2.4.1",
+    "react-hook-form": "^7.48.2",
+    "date-fns": "^3.0.6",
+    "lucide-react": "^0.303.0",
+    "@tanstack/react-query": "^5.14.2",
+    "react-select": "^5.8.0",
+    "react-datepicker": "^4.25.0",
+    "file-saver": "^2.0.5",
+    "react-modal": "^3.16.1",
+    "react-table": "^7.8.0",
+    "numeral": "^2.0.6",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
   }
 }
