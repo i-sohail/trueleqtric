@@ -5,24 +5,23 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    statusCode = 400;
-    const fields = Object.values(err.errors).map(e => e.message);
-    message = fields.join('. ');
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
+  // Prisma duplicate key
+  if (err.code === 'P2002') {
     statusCode = 409;
-    const field = Object.keys(err.keyValue)[0];
-    message = `Duplicate value for field: ${field}`;
+    const field = err.meta?.target || 'field';
+    message = `Duplicate value for ${field}`;
   }
 
-  // Mongoose cast error (invalid ObjectId)
-  if (err.name === 'CastError') {
+  // Prisma record not found
+  if (err.code === 'P2025') {
+    statusCode = 404;
+    message = 'Record not found';
+  }
+
+  // Prisma validation error
+  if (err.name === 'PrismaClientValidationError') {
     statusCode = 400;
-    message = `Invalid value for field: ${err.path}`;
+    message = 'Invalid data provided to database';
   }
 
   // Multer errors
