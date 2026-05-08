@@ -9,6 +9,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="error-display" style="display:none;position:fixed;top:0;left:0;width:100%;background:white;color:red;padding:20px;z-index:9999;font-family:monospace;white-space:pre-wrap;border-bottom:5px solid red"></div>
+    <script>
+      window.onerror = function(msg, url, line) {
+        var d = document.getElementById('error-display');
+        d.style.display = 'block';
+        d.innerText = 'CLIENT ERROR: ' + msg + '\nURL: ' + url + '\nLine: ' + line;
+      };
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

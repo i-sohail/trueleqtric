@@ -1,0 +1,12 @@
+{
+  "name": "trueleqtric-monorepo",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "install-server": "cd server && npm install"
+  }
+}
