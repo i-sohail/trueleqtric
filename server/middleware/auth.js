@@ -1,6 +1,6 @@
 // server/middleware/auth.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const prisma = require('../utils/prisma');
 
 exports.protect = async (req, res, next) => {
   try {
@@ -11,9 +11,13 @@ exports.protect = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'Not authorized. No token.' });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password').populate('roleRef');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      include: { roleRef: true }
+    });
     if (!user || !user.isActive) return res.status(401).json({ error: 'User not found or deactivated.' });
 
+    delete user.password;
     req.user = user;
     next();
   } catch (err) {
@@ -32,17 +36,15 @@ exports.authorize = (...roles) => (req, res, next) => {
 
 // Check module-level permission via custom Role
 exports.requirePermission = (module, action = 'read') => (req, res, next) => {
-  // Admins always pass
   if (req.user.role === 'admin') return next();
 
-  // Check custom role permissions
   if (req.user.roleRef && req.user.roleRef.permissions) {
-    const perm = req.user.roleRef.permissions.find(p => p.module === module);
+    const permissions = Array.isArray(req.user.roleRef.permissions) ? req.user.roleRef.permissions : [];
+    const perm = permissions.find(p => p.module === module);
     if (perm && perm[action]) return next();
     return res.status(403).json({ error: `You don't have ${action} permission on '${module}'.` });
   }
 
-  // Fall back to legacy role string logic
   const legacyMap = {
     admin:      { read: true,  write: true,  delete: true  },
     sales:      { read: true,  write: true,  delete: false },

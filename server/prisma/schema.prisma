@@ -1,0 +1,513 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  name         String
+  surname      String?  @default("")
+  username     String   @unique
+  email        String   @unique
+  password     String
+  mobile       String?  @default("")
+  country      String?  @default("")
+  city         String?  @default("")
+  region       String?  @default("")
+  role         String   @default("sales")
+  roleId       String?
+  roleRef      Role?    @relation("UserRole", fields: [roleId], references: [id])
+  isActive     Boolean  @default(true)
+  lastLogin    DateTime?
+  avatar       String?
+  preferences  Json?    
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  createdLeads      Lead[]      @relation("LeadCreatedBy")
+  assignedLeads     Lead[]      @relation("LeadSalesRep")
+  createdQuotes     Quotation[] @relation("QuoteCreatedBy")
+  assignedQuotes    Quotation[] @relation("QuoteSalesRep")
+  createdSalesPOs   SalesPO[]   @relation("SalesPOCreatedBy")
+  assignedSalesPOs  SalesPO[]   @relation("SalesPOSalesRep")
+  createdCustomers  Customer[]  @relation("CustomerCreatedBy")
+  createdVendors    Vendor[]    @relation("VendorCreatedBy")
+  createdRoles      Role[]      @relation("RoleCreatedBy")
+  createdInventory  Inventory[] @relation("InventoryCreatedBy")
+  createdCatalog    Catalog[]   @relation("CatalogCreatedBy")
+  createdTenders    Tender[]    @relation("TenderCreatedBy")
+  assignedTenders   Tender[]    @relation("TenderSalesRep")
+  createdDocuments  Document[]  @relation("DocumentCreatedBy")
+  createdProcurement Procurement[] @relation("ProcurementCreatedBy")
+  buyerProcurement  Procurement[] @relation("ProcurementBuyer")
+}
+
+model Role {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String?  @default("")
+  permissions  Json?    
+  isSystem     Boolean  @default(false)
+  createdById  String?
+  createdBy    User?    @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]   @relation("UserRole")
+}
+
+model Customer {
+  id           String   @id @default(uuid())
+  customerId   String   @unique
+  name         String
+  type         String?  
+  segment      String?
+  gst          String?
+  pan          String?
+  contact      String?
+  email        String?
+  phone        String?
+  city         String?
+  region       String?
+  creditLimit  Float    @default(0)
+  payTerms     Int      @default(30)
+  currency     String   @default("INR")
+  rating       String   @default("B+ (Good)")
+  notes        String?
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads        Lead[]
+  quotes       Quotation[]
+  salesPOs     SalesPO[]
+  tenders      Tender[]
+}
+
+model Lead {
+  id           String   @id @default(uuid())
+  leadId       String   @unique
+  customer     String
+  customerId   String?
+  customerRef  Customer? @relation(fields: [customerId], references: [id])
+  contact      String?
+  segment      String?
+  region       String?
+  category     String?
+  sku          String?
+  skuId        String?
+  skuRef       Catalog?  @relation(fields: [skuId], references: [id])
+  qty          Float?
+  unit         String?
+  source       String?
+  tenderRef    String?
+  bidDate      DateTime?
+  estValue     Float    @default(0)
+  stage        String   @default("New Enquiry")
+  priority     String   @default("Medium")
+  salesRep     String?
+  salesRepId   String?
+  salesRepRef  User?    @relation("LeadSalesRep", fields: [salesRepId], references: [id])
+  followUp     DateTime?
+  notes        String?
+  stageHistory Json?    
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  quotes       Quotation[]
+  tenders      Tender[]
+}
+
+model Quotation {
+  id           String   @id @default(uuid())
+  quoteId      String   @unique
+  customer     String
+  customerId   String?
+  customerRef  Customer? @relation(fields: [customerId], references: [id])
+  leadId       String?
+  leadRefId    String?
+  leadRef      Lead?    @relation(fields: [leadRefId], references: [id])
+  items        Json?    
+  sku          String?
+  product      String?
+  category     String?
+  qty          Float?
+  unit         String?
+  make         String?
+  unitCost     Float?
+  unitPrice    Float?
+  discount     Float    @default(0)
+  gstRate      String   @default("18%")
+  netPrice     Float?
+  lineTotal    Float?
+  gstAmt       Float?
+  total        Float?
+  margin       Float?
+  marginPct    Float?
+  validity     Int      @default(30)
+  status       String   @default("Draft")
+  salesRep     String?
+  salesRepId   String?
+  salesRepRef  User?    @relation("QuoteSalesRep", fields: [salesRepId], references: [id])
+  delivTerms   String?
+  payTerms     String?
+  incoterm     String?
+  warranty     String?
+  notes        String?
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("QuoteCreatedBy", fields: [createdById], references: [id])
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  salesPOs     SalesPO[]
+}
+
+model SalesPO {
+  id           String   @id @default(uuid())
+  spoId        String   @unique
+  customer     String
+  customerId   String?
+  customerRef  Customer? @relation(fields: [customerId], references: [id])
+  quoteId      String?
+  quoteRefId   String?
+  quoteRef     Quotation? @relation(fields: [quoteRefId], references: [id])
+  items        Json?    
+  sku          String?
+  product      String?
+  category     String?
+  qty          Float?
+  unit         String?
+  make         String?
+  unitPrice    Float?
+  unitCost     Float?
+  gstRate      String   @default("18%")
+  rev          Float?
+  gst          Float?
+  totalWithGst Float?
+  cost         Float?
+  margin       Float?
+  marginPct    Float?
+  freightCost  Float    @default(0)
+  ldDeduction  Float    @default(0)
+  incoterm     String?
+  poDate       DateTime?
+  delivDate    DateTime?
+  status       String   @default("Order Confirmed")
+  salesRep     String?
+  salesRepId   String?
+  salesRepRef  User?    @relation("SalesPOSalesRep", fields: [salesRepId], references: [id])
+  paymentTerms String?
+  ldTerms      String?
+  warrantyTerms String?
+  inspectionTerms String?
+  qualityStds  String?
+  notes        String?
+  statusHistory Json?    
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("SalesPOCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Vendor {
+  id           String   @id @default(uuid())
+  vendorId     String   @unique
+  name         String
+  type         String?
+  category     String?
+  brands       String?
+  gst          String?
+  pan          String?
+  contact      String?
+  email        String?
+  phone        String?
+  city         String?
+  region       String?
+  leadTime     Int      @default(30)
+  payTerms     Int      @default(30)
+  currency     String   @default("INR")
+  rating       String   @default("B+ (Good)")
+  notes        String?
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("VendorCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  procurements Procurement[]
+}
+
+model Inventory {
+  id           String   @id @default(uuid())
+  invId        String   @unique
+  sku          String
+  skuId        String?
+  skuRef       Catalog? @relation(fields: [skuId], references: [id])
+  product      String?
+  category     String?
+  make         String?
+  unit         String   @default("Nos.")
+  warehouse    String?
+  location     String?
+  openingQty   Float    @default(0)
+  receivedQty  Float    @default(0)
+  issuedQty    Float    @default(0)
+  reservedQty  Float    @default(0)
+  reorderLevel Float    @default(0)
+  reorderQty   Float    @default(0)
+  notes        String?
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("InventoryCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Catalog {
+  id           String   @id @default(uuid())
+  sku          String   @unique
+  name         String
+  category     String
+  subCat       String?
+  segment      String?
+  make         String?
+  unit         String   @default("Nos.")
+  hsn          String?
+  gstRate      String   @default("18%")
+  costPrice    Float    @default(0)
+  listPrice    Float    @default(0)
+  minPrice     Float    @default(0)
+  warranty     String?
+  specs        String?
+  priceHistory Json?   
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("CatalogCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads       Lead[]
+  inventory   Inventory[]
+}
+
+model Tender {
+  id             String   @id @default(uuid())
+  tenderId       String   @unique
+  title          String
+  tenderNo       String?
+  customer       String?
+  customerId     String?
+  customerRef    Customer? @relation(fields: [customerId], references: [id])
+  type           String   @default("Open Tender")
+  segment        String?
+  region         String?
+  status         String   @default("Pre-Bid Prep")
+  salesRep       String?
+  salesRepId     String?
+  salesRepRef    User?    @relation("TenderSalesRep", fields: [salesRepId], references: [id])
+  linkedLead     String?
+  leadRefId      String?
+  linkedLeadRef  Lead?    @relation(fields: [leadRefId], references: [id])
+  estimatedValue Float?
+  ourBidValue    Float?
+  emdAmount      Float?
+  emdMode        String?
+  emdRef         String?
+  bidDate        DateTime?
+  openDate       DateTime?
+  resultDate     DateTime?
+  linkedBG       String?
+  checklist      Json?    
+  notes          String?
+  tags           String[]
+  isDeleted      Boolean  @default(false)
+  deletedAt      DateTime?
+  createdById    String?
+  createdBy      User?    @relation("TenderCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  docId        String   @unique
+  title        String
+  category     String   @default("Other")
+  linkedType   String?
+  linkedTo     String?
+  fileName     String?
+  originalName String?
+  mimeType     String?
+  fileSize     Float?
+  filePath     String?
+  uploadedDate DateTime @default(now())
+  notes        String?
+  tags         String[]
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Procurement {
+  id             String   @id @default(uuid())
+  procId         String   @unique
+  vendor         String
+  vendorId       String?
+  vendorRef      Vendor?  @relation(fields: [vendorId], references: [id])
+  salesPORef     String?
+  salesPOId      String?
+  items          Json?    
+  sku            String?
+  product        String?
+  category       String?
+  qty            Float?
+  unit           String?
+  make           String?
+  unitCost       Float?
+  gstRate        String   @default("18%")
+  purDate        DateTime?
+  expDelivery    DateTime?
+  actualDelivery DateTime?
+  status         String   @default("Enquiry Sent")
+  buyer          String?
+  buyerId        String?
+  buyerRef       User?    @relation("ProcurementBuyer", fields: [buyerId], references: [id])
+  notes          String?
+  isDeleted      Boolean  @default(false)
+  deletedAt      DateTime?
+  createdById    String?
+  createdBy      User?    @relation("ProcurementCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AP {
+  id           String   @id @default(uuid())
+  vendor       String?
+  vendorId     String?
+  procId       String?
+  procRef      String?
+  status       String   @default("Pending")
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AR {
+  id           String   @id @default(uuid())
+  customer     String?
+  customerId   String?
+  spoId        String?
+  spoRef       String?
+  salesRep     String?
+  status       String   @default("Pending")
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BGLC {
+  id           String   @id @default(uuid())
+  bgId         String?
+  type         String?
+  amount       Float?
+  status       String   @default("Active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Commission {
+  id           String   @id @default(uuid())
+  salesRep     String?
+  amount       Float?
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Delivery {
+  id           String   @id @default(uuid())
+  deliveryId   String?
+  spoId        String?
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model DropdownList {
+  id           String   @id @default(uuid())
+  type         String?
+  value        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PaymentSchedule {
+  id           String   @id @default(uuid())
+  spoId        String?
+  amount       Float?
+  dueDate      DateTime?
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ProdTracking {
+  id           String   @id @default(uuid())
+  spoId        String?
+  stage        String?
+  status       String   @default("In Progress")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Task {
+  id           String   @id @default(uuid())
+  title        String?
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Trash {
+  id           String   @id @default(uuid())
+  originalId   String?
+  collection   String?
+  deletedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VendorScore {
+  id           String   @id @default(uuid())
+  vendorId     String?
+  score        Float?
+  reviewDate   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+

@@ -46,8 +46,17 @@ const accessRoutes = require('./routes/access');
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to Prisma Database
+const prisma = require('./utils/prisma');
+
+prisma.$connect()
+  .then(() => {
+    logger.info('🐘 Connected to Supabase PostgreSQL Database');
+  })
+  .catch((error) => {
+    logger.error('❌ Failed to connect to Database', error);
+    process.exit(1);
+  });
 
 // Security middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));

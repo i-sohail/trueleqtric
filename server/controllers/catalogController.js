@@ -1,54 +1,86 @@
 // server/controllers/catalogController.js
-const Catalog = require('../models/Catalog');
+const prisma = require('../utils/prisma');
 const asyncHandler = require('../middleware/asyncHandler');
-const { softDelete } = require('../utils/softDelete');
 
 exports.getAll = asyncHandler(async (req, res) => {
-  const { page=1,limit=500,sort='-createdAt',search,category } = req.query;
+  const { page=1, limit=500, search, category } = req.query;
   const filter = { isDeleted: false };
-  if (search) filter.$or = ['name','sku','category','make'].map(f=>({[f]:{$regex:search,$options:'i'}}));
   if (category) filter.category = category;
-  const [data,total] = await Promise.all([Catalog.find(filter).sort(sort).skip((page-1)*limit).limit(parseInt(limit)), Catalog.countDocuments(filter)]);
+  if (search) {
+    filter.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { sku: { contains: search, mode: 'insensitive' } },
+      { category: { contains: search, mode: 'insensitive' } },
+      { make: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+  const [data, total] = await Promise.all([
+    prisma.catalog.findMany({ where: filter, orderBy: { createdAt: 'desc' }, skip: (page-1)*parseInt(limit), take: parseInt(limit) }),
+    prisma.catalog.count({ where: filter }),
+  ]);
   res.json({ data, total });
 });
 
 exports.getOne = asyncHandler(async (req, res) => {
-  const doc = await Catalog.findOne({ _id: req.params.id, isDeleted: false });
+  const doc = await prisma.catalog.findFirst({ where: { id: req.params.id, isDeleted: false } });
   if (!doc) return res.status(404).json({ error: 'Not found' });
   res.json({ data: doc });
 });
 
 exports.create = asyncHandler(async (req, res) => {
-  const doc = await Catalog.create({ ...req.body, createdBy: req.user._id });
+  const count = await prisma.catalog.count();
+  const catCode = (req.body.category || 'GEN').replace(/[^A-Z]/gi, '').slice(0,3).toUpperCase();
+  const sku = `SKU-${catCode}-${String(count + 1).padStart(3, '0')}`;
+  
+  const doc = await prisma.catalog.create({ data: { ...req.body, sku, createdById: req.user.id } });
   res.status(201).json({ data: doc, message: 'Product created' });
 });
 
 exports.update = asyncHandler(async (req, res) => {
-  const doc = await Catalog.findOneAndUpdate({ _id: req.params.id, isDeleted: false }, req.body, { new: true });
-  if (!doc) return res.status(404).json({ error: 'Not found' });
+  const existing = await prisma.catalog.findFirst({ where: { id: req.params.id, isDeleted: false } });
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const doc = await prisma.catalog.update({ where: { id: req.params.id }, data: req.body });
   res.json({ data: doc, message: 'Product updated' });
 });
 
 exports.remove = asyncHandler(async (req, res) => {
-  await softDelete(Catalog, req.params.id, 'catalog', req.user._id);
+  await prisma.catalog.update({ where: { id: req.params.id }, data: { isDeleted: true, deletedAt: new Date() } });
   res.json({ message: 'Moved to trash' });
 });
 
 exports.updatePrice = asyncHandler(async (req, res) => {
   const { costPrice, listPrice, minPrice, note, changedBy } = req.body;
-  const item = await Catalog.findOne({ _id: req.params.id, isDeleted: false });
+  const item = await prisma.catalog.findFirst({ where: { id: req.params.id, isDeleted: false } });
   if (!item) return res.status(404).json({ error: 'Not found' });
-  item.priceHistory = item.priceHistory || [];
-  item.priceHistory.push({ date: new Date(), costPrice: item.costPrice, listPrice: item.listPrice, minPrice: item.minPrice, note: note||'Price update', changedBy: changedBy||req.user.name });
-  if (costPrice !== undefined) item.costPrice = costPrice;
-  if (listPrice !== undefined) item.listPrice = listPrice;
-  if (minPrice !== undefined) item.minPrice = minPrice;
-  await item.save();
-  res.json({ data: item, message: 'Price updated' });
+  
+  let priceHistory = Array.isArray(item.priceHistory) ? [...item.priceHistory] : [];
+  priceHistory.push({ 
+    date: new Date().toISOString(), 
+    costPrice: item.costPrice, 
+    listPrice: item.listPrice, 
+    minPrice: item.minPrice, 
+    note: note || 'Price update', 
+    changedBy: changedBy || req.user.name 
+  });
+  
+  const updateData = { priceHistory };
+  if (costPrice !== undefined) updateData.costPrice = costPrice;
+  if (listPrice !== undefined) updateData.listPrice = listPrice;
+  if (minPrice !== undefined) updateData.minPrice = minPrice;
+  
+  const updatedItem = await prisma.catalog.update({
+    where: { id: item.id },
+    data: updateData
+  });
+  
+  res.json({ data: updatedItem, message: 'Price updated' });
 });
 
 exports.getPriceHistory = asyncHandler(async (req, res) => {
-  const item = await Catalog.findOne({ _id: req.params.id, isDeleted: false }).select('sku name priceHistory costPrice listPrice minPrice');
+  const item = await prisma.catalog.findFirst({ 
+    where: { id: req.params.id, isDeleted: false },
+    select: { sku: true, name: true, priceHistory: true, costPrice: true, listPrice: true, minPrice: true }
+  });
   if (!item) return res.status(404).json({ error: 'Not found' });
   res.json({ data: item });
 });
