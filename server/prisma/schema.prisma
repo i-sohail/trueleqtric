@@ -46,6 +46,7 @@ model User {
   createdDocuments  Document[]  @relation("DocumentCreatedBy")
   createdProcurement Procurement[] @relation("ProcurementCreatedBy")
   buyerProcurement  Procurement[] @relation("ProcurementBuyer")
+  deletedTrash      Trash[]     @relation("TrashDeletedBy")
 }
 
 model Role {
@@ -402,16 +403,24 @@ model Procurement {
   createdById    String?
   createdBy      User?    @relation("ProcurementCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  updatedAt    DateTime @updatedAt
 }
 
 model AP {
   id           String   @id @default(uuid())
+  apId         String?
   vendor       String?
   vendorId     String?
   procId       String?
   procRef      String?
+  invoiceAmt   Float    @default(0)
+  gst          Float    @default(0)
+  amtPaid      Float    @default(0)
+  invDate      DateTime?
+  dueDate      DateTime?
   status       String   @default("Pending")
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
   createdById  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -419,12 +428,19 @@ model AP {
 
 model AR {
   id           String   @id @default(uuid())
+  arId         String?
   customer     String?
   customerId   String?
   spoId        String?
   spoRef       String?
+  invoiceAmt   Float    @default(0)
+  amtReceived  Float    @default(0)
+  invoiceDate  DateTime?
+  dueDate      DateTime?
   salesRep     String?
   status       String   @default("Pending")
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
   createdById  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -436,6 +452,10 @@ model BGLC {
   type         String?
   amount       Float?
   status       String   @default("Active")
+  expiryDate   DateTime?
+  renewalAlert Int      @default(30)
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -450,12 +470,16 @@ model Commission {
 }
 
 model Delivery {
-  id           String   @id @default(uuid())
-  deliveryId   String?
-  spoId        String?
-  status       String   @default("Pending")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(uuid())
+  delId          String?
+  spoId          String?
+  contractedDate DateTime?
+  actualDelivery DateTime?
+  status         String   @default("Pending")
+  isDeleted      Boolean  @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model DropdownList {
@@ -489,15 +513,23 @@ model Task {
   id           String   @id @default(uuid())
   title        String?
   status       String   @default("Pending")
+  dueDate      DateTime?
+  assignedTo   String?
+  createdById  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
 model Trash {
   id           String   @id @default(uuid())
+  trashId      String?
+  displayId    String?
   originalId   String?
   collection   String?
   deletedBy    String?
+  deletedById  String?
+  deletedByUser User?    @relation("TrashDeletedBy", fields: [deletedById], references: [id])
+  deletedAt    DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -510,4 +542,3 @@ model VendorScore {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
-

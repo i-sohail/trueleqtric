@@ -1,36 +1,25 @@
 // server/controllers/dashboardController.js
 const asyncHandler = require('../middleware/asyncHandler');
-const Lead = require('../models/Lead');
-const Quotation = require('../models/Quotation');
-const SalesPO = require('../models/SalesPO');
-const AR = require('../models/AR');
-const AP = require('../models/AP');
-const Inventory = require('../models/Inventory');
-const Delivery = require('../models/Delivery');
-const Customer = require('../models/Customer');
-const Vendor = require('../models/Vendor');
-const Catalog = require('../models/Catalog');
-const BGLC = require('../models/BGLC');
-const Tender = require('../models/Tender');
+const prisma = require('../utils/prisma');
 const { calcSPO, getOverdueDays } = require('../utils/financials');
 
 exports.getKPIs = asyncHandler(async (req, res) => {
   const { startDate, endDate } = req.query;
   const dateFilter = {};
-  if (startDate) dateFilter.$gte = new Date(startDate);
-  if (endDate) dateFilter.$lte = new Date(endDate);
+  if (startDate) dateFilter.gte = new Date(startDate);
+  if (endDate) dateFilter.lte = new Date(endDate);
   const hasDates = startDate || endDate;
 
-  const [leads, spos, ar, ap, inv, del_, customers, vendors, catalog] = await Promise.all([
-    Lead.find({ isDeleted: false, ...(hasDates ? { date: dateFilter } : {}) }),
-    SalesPO.find({ isDeleted: false, ...(hasDates ? { poDate: dateFilter } : {}) }),
-    AR.find({ isDeleted: false, ...(hasDates ? { invoiceDate: dateFilter } : {}) }),
-    AP.find({ isDeleted: false, ...(hasDates ? { invDate: dateFilter } : {}) }),
-    Inventory.find({ isDeleted: false }),
-    Delivery.find({ isDeleted: false }),
-    Customer.countDocuments({ isDeleted: false }),
-    Vendor.countDocuments({ isDeleted: false }),
-    Catalog.find({ isDeleted: false }),
+  const [leads, spos, ar, ap, inv, del_, customersCount, vendorsCount, catalog] = await Promise.all([
+    prisma.lead.findMany({ where: { isDeleted: false, ...(hasDates ? { date: dateFilter } : {}) } }),
+    prisma.salesPO.findMany({ where: { isDeleted: false, ...(hasDates ? { poDate: dateFilter } : {}) } }),
+    prisma.aR.findMany({ where: { isDeleted: false, ...(hasDates ? { invoiceDate: dateFilter } : {}) } }),
+    prisma.aP.findMany({ where: { isDeleted: false, ...(hasDates ? { invDate: dateFilter } : {}) } }),
+    prisma.inventory.findMany({ where: { isDeleted: false } }),
+    prisma.delivery.findMany({ where: { isDeleted: false } }),
+    prisma.customer.count({ where: { isDeleted: false } }),
+    prisma.vendor.count({ where: { isDeleted: false } }),
+    prisma.catalog.findMany({ where: { isDeleted: false } }),
   ]);
 
   const catalogMap = {};
@@ -67,18 +56,24 @@ exports.getKPIs = asyncHandler(async (req, res) => {
     overdueAR, pendingAP, stockValue, lowStock, overdueDeliveries, activePOs,
     leadsCount: leads.length,
     activeLeads: leads.filter(l => !['Closed Lost', 'PO Received'].includes(l.stage)).length,
-    customersCount: customers, vendorsCount: vendors,
+    customersCount, vendorsCount,
   });
 });
 
 exports.getPipelineFunnel = asyncHandler(async (req, res) => {
   const stages = ['New Enquiry','Qualified','Proposal Submitted','Negotiation','PO Received','Closed Lost','On Hold','Repeat Order'];
-  const agg = await Lead.aggregate([
-    { $match: { isDeleted: false } },
-    { $group: { _id: '$stage', count: { $sum: 1 }, value: { $sum: '$estValue' } } },
-  ]);
+  const agg = await prisma.lead.groupBy({
+    by: ['stage'],
+    where: { isDeleted: false },
+    _sum: { estValue: true },
+    _count: { _all: true }
+  });
+  
   const map = {};
-  agg.forEach(a => { map[a._id] = a; });
+  agg.forEach(a => { 
+    map[a.stage] = { count: a._count._all, value: a._sum.estValue || 0 }; 
+  });
+  
   const funnel = stages.map(s => ({ stage: s, count: map[s]?.count || 0, value: map[s]?.value || 0 }));
   res.json({ data: funnel });
 });
@@ -86,23 +81,33 @@ exports.getPipelineFunnel = asyncHandler(async (req, res) => {
 exports.getAlerts = asyncHandler(async (req, res) => {
   const now = new Date();
   const [overdueAR, invItems, critLeads, overdueDeliveries, expiringBGLC] = await Promise.all([
-    AR.find({ isDeleted: false, status: { $nin: ['Received - Full','Written Off'] }, dueDate: { $lt: now } })
-      .select('customer invoiceAmt amtReceived dueDate arId').limit(10),
-    Inventory.find({ isDeleted: false }).limit(100),
-    Lead.find({ isDeleted: false, priority: 'Critical', stage: { $nin: ['PO Received','Closed Lost'] } })
-      .select('customer leadId stage priority estValue').limit(10),
-    Delivery.find({
-      isDeleted: false, contractedDate: { $lt: now },
-      actualDelivery: { $exists: false },
-      status: { $nin: ['Delivered - POD Received','Delivered - Pending POD','Cancelled'] }
-    }).select('spoId delId contractedDate status').limit(10),
-    BGLC.find({ isDeleted: false, status: 'Active', expiryDate: { $exists: true } }).limit(50),
+    prisma.aR.findMany({ 
+      where: { isDeleted: false, status: { notIn: ['Received - Full','Written Off'] }, dueDate: { lt: now } },
+      select: { customer: true, invoiceAmt: true, amtReceived: true, dueDate: true, arId: true },
+      take: 10
+    }),
+    prisma.inventory.findMany({ where: { isDeleted: false }, take: 100 }),
+    prisma.lead.findMany({ 
+      where: { isDeleted: false, priority: 'Critical', stage: { notIn: ['PO Received','Closed Lost'] } },
+      select: { customer: true, leadId: true, stage: true, priority: true, estValue: true },
+      take: 10
+    }),
+    prisma.delivery.findMany({
+      where: {
+        isDeleted: false, contractedDate: { lt: now },
+        actualDelivery: null,
+        status: { notIn: ['Delivered - POD Received','Delivered - Pending POD','Cancelled'] }
+      },
+      select: { spoId: true, delId: true, contractedDate: true, status: true },
+      take: 10
+    }),
+    prisma.bGLC.findMany({ where: { isDeleted: false, status: 'Active', expiryDate: { not: null } }, take: 50 }),
   ]);
 
   const lowStockItems = invItems
     .map(item => {
       const cur = (item.openingQty || 0) + (item.receivedQty || 0) - (item.issuedQty || 0);
-      return { ...item.toJSON(), currentStock: cur };
+      return { ...item, currentStock: cur };
     })
     .filter(item => item.currentStock <= (item.reorderLevel || 0))
     .slice(0, 10);
@@ -116,16 +121,16 @@ exports.getAlerts = asyncHandler(async (req, res) => {
 });
 
 exports.getRecentOrders = asyncHandler(async (req, res) => {
-  const spos = await SalesPO.find({ isDeleted: false }).sort({ createdAt: -1 }).limit(10);
-  const enriched = spos.map(p => ({ ...p.toJSON(), calc: calcSPO(p) }));
+  const spos = await prisma.salesPO.findMany({ where: { isDeleted: false }, orderBy: { createdAt: 'desc' }, take: 10 });
+  const enriched = spos.map(p => ({ ...p, calc: calcSPO(p) }));
   res.json({ data: enriched });
 });
 
 exports.getTicker = asyncHandler(async (req, res) => {
   const [leads, spos, ar] = await Promise.all([
-    Lead.find({ isDeleted: false }),
-    SalesPO.find({ isDeleted: false }),
-    AR.find({ isDeleted: false }),
+    prisma.lead.findMany({ where: { isDeleted: false } }),
+    prisma.salesPO.findMany({ where: { isDeleted: false } }),
+    prisma.aR.findMany({ where: { isDeleted: false } }),
   ]);
   const pipeline = leads.filter(l => l.stage !== 'Closed Lost').reduce((s, l) => s + (l.estValue || 0), 0);
   const revenue = spos.reduce((s, p) => s + calcSPO(p).rev, 0);
