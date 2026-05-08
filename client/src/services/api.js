@@ -18,7 +18,10 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    const message = err.response?.data?.error || err.message || 'Something went wrong'
+    let message = err.response?.data?.error || err.message || 'Something went wrong'
+    if (typeof message === 'object' && message !== null) {
+      message = message.message || JSON.stringify(message)
+    }
     if (err.response?.status === 401) {
       localStorage.removeItem('tl_token')
       if (!window.location.pathname.includes('/login')) {
