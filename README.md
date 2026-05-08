@@ -307,3 +307,8 @@ CLIENT_URL=https://your-domain.com
 5. **Dropdown lists**: Seeded with 35+ default lists from the original HTML. All lists are user-editable and persisted in the `dropdownlists` collection.
 
 6. **PDF generation**: The reports controller returns styled HTML that browsers can print-to-PDF. For server-side PDF, integrate Puppeteer in `reportsController.js`.
+
+ 
+ # #   D e p l o y m e n t 
+ T h i s   p r o j e c t   i s   a u t o m a t i c a l l y   d e p l o y e d   t o   V e r c e l   v i a   G i t H u b .  
+ 
