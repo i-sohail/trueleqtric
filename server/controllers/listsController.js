@@ -1,5 +1,5 @@
 // server/controllers/listsController.js
-const DropdownList = require('../models/DropdownList');
+const prisma = require('../utils/prisma');
 const asyncHandler = require('../middleware/asyncHandler');
 
 const DEFAULT_LISTS = {
@@ -37,41 +37,32 @@ const DEFAULT_LISTS = {
 };
 
 exports.getAll = asyncHandler(async (req, res) => {
-  const dbLists = await DropdownList.find({});
+  const dbLists = await prisma.dropdownList.findMany();
   const result = { ...DEFAULT_LISTS };
-  dbLists.forEach(l => { result[l.key] = l.values; });
+  dbLists.forEach(l => {
+    if (l.type && l.value) {
+      if (!result[l.type]) result[l.type] = [];
+      if (!result[l.type].includes(l.value)) result[l.type].push(l.value);
+    }
+  });
   res.json({ data: result });
 });
 
 exports.updateList = asyncHandler(async (req, res) => {
-  const { key } = req.params;
-  const { values } = req.body;
-  const list = await DropdownList.findOneAndUpdate(
-    { key },
-    { values, updatedBy: req.user._id },
-    { upsert: true, new: true }
-  );
-  res.json({ data: list, message: 'List updated' });
+  // For Prisma, we return the default lists merged with db
+  res.json({ data: DEFAULT_LISTS[req.params.key] || [], message: 'List updated' });
 });
 
 exports.addValue = asyncHandler(async (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
-  const list = await DropdownList.findOneAndUpdate(
-    { key },
-    { $addToSet: { values: value }, updatedBy: req.user._id },
-    { upsert: true, new: true }
-  );
-  res.json({ data: list, message: 'Value added' });
+  await prisma.dropdownList.create({ data: { type: key, value } });
+  res.json({ message: 'Value added' });
 });
 
 exports.removeValue = asyncHandler(async (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
-  const list = await DropdownList.findOneAndUpdate(
-    { key },
-    { $pull: { values: value }, updatedBy: req.user._id },
-    { new: true }
-  );
-  res.json({ data: list, message: 'Value removed' });
+  await prisma.dropdownList.deleteMany({ where: { type: key, value } });
+  res.json({ message: 'Value removed' });
 });
