@@ -53,8 +53,8 @@ prisma.$connect()
     logger.info('🐘 Connected to Supabase PostgreSQL Database');
   })
   .catch((error) => {
-    logger.error('❌ Failed to connect to Database', error);
-    process.exit(1);
+    logger.error('❌ Failed to connect to Database. Please check DATABASE_URL environment variable.', error);
+    // On Vercel, we don't want to exit(1) as it causes FUNCTION_INVOCATION_FAILED
   });
 
 // Security middleware
