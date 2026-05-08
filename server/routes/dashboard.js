@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/dashboardController');
+const { protect } = require('../middleware/auth');
+router.use(protect);
+router.get('/kpis', c.getKPIs);
+router.get('/pipeline-funnel', c.getPipelineFunnel);
+router.get('/alerts', c.getAlerts);
+router.get('/recent-orders', c.getRecentOrders);
+router.get('/ticker', c.getTicker);
+module.exports = router;

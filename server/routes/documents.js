@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const c = require('../controllers/documentsController');
+const { protect } = require('../middleware/auth');
+const upload = require('../config/multer');
+router.use(protect);
+router.get('/', c.getAll);
+router.post('/', upload.single('file'), c.upload);
+router.get('/:id', c.getOne);
+router.put('/:id', c.update);
+router.get('/:id/download', c.download);
+router.delete('/:id', c.remove);
+module.exports = router;

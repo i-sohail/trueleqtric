@@ -1,0 +1,14 @@
+const router = require('express').Router();
+const c = require('../controllers/analyticsController');
+const { protect } = require('../middleware/auth');
+router.use(protect);
+router.get('/overview', c.getOverview);
+router.get('/monthly-trend', c.getMonthlyTrend);
+router.get('/ar-aging', c.getARAging);
+router.get('/category-revenue', c.getCategoryRevenue);
+router.get('/sales-rep-scoreboard', c.getSalesRepScoreboard);
+router.get('/forecast', c.getForecast);
+router.get('/margin-waterfall', c.getMarginWaterfall);
+router.get('/lead-funnel', c.getLeadFunnel);
+router.get('/insights', c.getInsights);
+module.exports = router;

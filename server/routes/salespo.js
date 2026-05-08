@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const c = require('../controllers/salespoController');
+const { protect } = require('../middleware/auth');
+router.use(protect);
+router.get('/stats', c.getStats);
+router.route('/').get(c.getAll).post(c.create);
+router.route('/:id').get(c.getOne).put(c.update).delete(c.remove);
+router.post('/:id/create-ar', c.createAR);
+router.post('/:id/create-procurement', c.createProcurement);
+router.get('/:id/document', c.getDocument);
+module.exports = router;
