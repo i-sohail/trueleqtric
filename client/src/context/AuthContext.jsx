@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('tl_token')
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      api.get('/access/me')
+      api.get('/auth/me')
         .then(res => setUser(res.data.user))
         .catch((err) => {
           localStorage.removeItem('tl_token')
@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (email, password) => {
-    const res = await api.post('/access/login', { email, password })
+    const res = await api.post('/auth/login', { email, password })
     const { token, user } = res.data
     localStorage.setItem('tl_token', token)
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
