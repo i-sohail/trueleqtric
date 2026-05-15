@@ -6,6 +6,7 @@
     "client"
   ],
   "scripts": {
+    "postinstall": "npm run build:server",
     "build:client": "cd client && npm run build",
     "build:server": "npx prisma generate --schema=server/prisma/schema.prisma",
     "vercel-build": "npm run build:server && npm run build:client"
