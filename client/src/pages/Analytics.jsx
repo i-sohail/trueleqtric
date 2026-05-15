@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../services/modules'
-import { PageHeader, KPICard } from '../components/common/ui.jsx'
+import { PageHeader, KPICard, PageLoader } from '../components/common/ui.jsx'
 import { fmtCurrency, fmtPct } from '../utils/format'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 
@@ -12,7 +12,7 @@ export default function Analytics() {
   const [chartType, setChartType] = useState('bar')
   const [activePanel, setActivePanel] = useState(null)
 
-  const { data: overview } = useQuery({ queryKey:['analytics-overview'], queryFn: analyticsApi.getOverview })
+  const { data: overview, isLoading } = useQuery({ queryKey:['analytics-overview'], queryFn: analyticsApi.getOverview })
   const { data: trend } = useQuery({ queryKey:['analytics-trend'], queryFn: () => analyticsApi.getMonthlyTrend(new Date().getFullYear()) })
   const { data: aging } = useQuery({ queryKey:['analytics-aging'], queryFn: analyticsApi.getARAging })
   const { data: catRev } = useQuery({ queryKey:['analytics-category'], queryFn: analyticsApi.getCategoryRevenue })
@@ -23,6 +23,10 @@ export default function Analytics() {
 
   const agingData = aging?.data ? Object.entries(aging.data).map(([k, v]) => ({ name: k, value: v })) : []
   const trendData = trend?.data || []
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   return (
     <div>

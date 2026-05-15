@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accessApi } from '../services/modules'
 import { useAuth } from '../context/AuthContext'
-import { PageHeader, ConfirmDialog } from '../components/common/ui.jsx'
+import { PageHeader, ConfirmDialog, PageLoader } from '../components/common/ui.jsx'
 import toast from 'react-hot-toast'
 
 // ── Module labels for permissions table ─────────────
@@ -95,6 +95,10 @@ function UsersTab() {
     return <span className={`badge ${cls}`}>{roleName}</span>
   }
 
+  if (isLoading) {
+    return <PageLoader />
+  }
+
   return (
     <div>
       {/* Search + filters bar */}
@@ -129,8 +133,7 @@ function UsersTab() {
           <span style={{ fontSize:12, fontWeight:600 }}>👥 All Users <span style={{ fontSize:10, color:'var(--text3)', fontFamily:'var(--font-mono)', background:'var(--bg3)', padding:'1px 6px', borderRadius:10 }}>{users.length}</span></span>
         </div>
         <div style={{ overflowX:'auto' }}>
-          {isLoading ? <div style={{ padding:40, textAlign:'center', color:'var(--text3)' }}>Loading users...</div> :
-           users.length === 0 ? <div style={{ padding:40, textAlign:'center', color:'var(--text3)' }}>No users found</div> : (
+          {users.length === 0 ? <div style={{ padding:40, textAlign:'center', color:'var(--text3)' }}>No users found</div> : (
             <table className="data-table">
               <thead>
                 <tr>
@@ -368,6 +371,10 @@ function RolesTab() {
     return { readCount, writeCount, deleteCount, total: perms.length }
   }
 
+  if (isLoading) {
+    return <PageLoader />
+  }
+
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
@@ -375,7 +382,6 @@ function RolesTab() {
         <button className="btn btn-primary btn-sm" onClick={openCreate}>+ New Role</button>
       </div>
 
-      {isLoading ? <div style={{ padding:40, textAlign:'center', color:'var(--text3)' }}>Loading roles...</div> : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:14 }}>
           {roles.map(role => {
             const summary = getPermSummary(role)
@@ -417,7 +423,6 @@ function RolesTab() {
             )
           })}
         </div>
-      )}
 
       {/* Role Form Modal */}
       {modal.open && (

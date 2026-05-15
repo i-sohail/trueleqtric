@@ -1,7 +1,7 @@
 // client/src/pages/Dashboard.jsx
 import { useQuery } from '@tanstack/react-query'
 import { dashboardApi, reportsApi, analyticsApi } from '../services/modules'
-import { KPICard, PageHeader, ProgressBar } from '../components/common/ui.jsx'
+import { KPICard, PageHeader, ProgressBar, PageLoader } from '../components/common/ui.jsx'
 import { fmtCurrency, fmtPct, fmtDate, getStatusBadge } from '../utils/format'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -60,6 +60,10 @@ export default function Dashboard() {
   }
 
   const maxPipeline = pipeline?.data ? Math.max(...pipeline.data.map(s => s.value), 1) : 1
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   return (
     <div>

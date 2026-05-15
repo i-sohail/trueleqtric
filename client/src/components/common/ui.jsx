@@ -77,3 +77,14 @@ export function ProgressBar({ value, max = 100, color = 'var(--blue)', height = 
     </div>
   )
 }
+
+// client/src/components/common/PageLoader.jsx
+export function PageLoader() {
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh', height:'100%', flexDirection:'column', gap:12 }}>
+      <div style={{ width:40, height:40, border:'3px solid var(--border2)', borderTopColor:'var(--blue)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <div style={{ color:'var(--text3)', fontSize:13, fontFamily:'var(--font-mono)' }}>Loading data…</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}

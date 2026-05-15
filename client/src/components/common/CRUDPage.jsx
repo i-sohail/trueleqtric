@@ -2,7 +2,7 @@
 // Reusable CRUD page component used by all modules
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useFormModal } from '../../hooks/useFormModal'
-import { PageHeader, KPICard, ConfirmDialog } from './ui.jsx'
+import { PageHeader, KPICard, ConfirmDialog, PageLoader } from './ui.jsx'
 import DataTable from './DataTable'
 import Modal from './Modal'
 import { useState } from 'react'
@@ -55,6 +55,10 @@ export default function CRUDPage({
       ),
     },
   ]
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   return (
     <div>
